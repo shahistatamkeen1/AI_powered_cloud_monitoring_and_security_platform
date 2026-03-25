@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function getSeverityColor(severity) {
   if (severity === 'Critical') return 'bg-red-100 text-red-600'
@@ -10,10 +10,15 @@ function getStatusColor(status) {
   if (status === 'Active') return 'bg-red-100 text-red-600'
   if (status === 'Acknowledged') return 'bg-blue-100 text-blue-600'
   if (status === 'Resolved') return 'bg-green-100 text-green-600'
+  return 'bg-gray-100 text-gray-600'
 }
 
-export default function AlertsTable({ data }) {
+export default function AlertsTable({ data = [] }) {
   const [alerts, setAlerts] = useState(data)
+
+  useEffect(() => {
+    setAlerts(data)
+  }, [data])
 
   const handleAcknowledge = (id) => {
     const updated = alerts.map((alert) =>
@@ -65,7 +70,7 @@ export default function AlertsTable({ data }) {
 
               <td className="text-gray-500">{alert.time}</td>
 
-              <td className="flex gap-2">
+              <td className="flex gap-2 py-4">
                 {alert.status !== 'Acknowledged' && (
                   <button
                     onClick={() => handleAcknowledge(alert.id)}

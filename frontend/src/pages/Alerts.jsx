@@ -8,16 +8,17 @@ export default function Alerts() {
     fetch('http://127.0.0.1:8000/alerts')
       .then((res) => res.json())
       .then((data) => {
-        console.log("API data:", data)
+        console.log('API data:', data)
 
-        // Convert backend data → frontend format
-        const formatted = data.map((item, index) => ({
+        const safeData = Array.isArray(data) ? data : []
+
+        const formatted = safeData.map((item, index) => ({
           id: index + 1,
-          vmName: item.type || "vm-app01",
-          alertName: item.type + " Alert",
-          severity: item.status,
-          status: item.status,
-          time: new Date().toLocaleTimeString()
+          vmName: item.type || 'vm-app01',
+          alertName: `${item.type || 'System'} Alert`,
+          severity: item.status || 'Info',
+          status: item.status || 'Info',
+          time: new Date().toLocaleTimeString(),
         }))
 
         setAlerts(formatted)
@@ -28,7 +29,7 @@ export default function Alerts() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Alerts</h1>
-      <AlertsTable alerts={alerts} />
+      <AlertsTable data={alerts} />
     </div>
   )
 }
