@@ -9,17 +9,14 @@ def get_alerts():
 
     cpu = psutil.cpu_percent()
     memory = psutil.virtual_memory().percent
-    disk = psutil.disk_usage('/').percent
 
-    # CPU alert
-    if cpu > 80:
+    if cpu > 25:
         alerts.append({
             "type": "CPU",
             "value": cpu,
             "status": "Critical"
         })
 
-    # Memory alert
     if memory > 85:
         alerts.append({
             "type": "Memory",
@@ -27,15 +24,6 @@ def get_alerts():
             "status": "Critical"
         })
 
-    # Disk alert
-    if disk > 75:
-        alerts.append({
-            "type": "Disk",
-            "value": disk,
-            "status": "Warning"
-        })
-
-    # If no alerts
     if not alerts:
         alerts.append({
             "type": "System",

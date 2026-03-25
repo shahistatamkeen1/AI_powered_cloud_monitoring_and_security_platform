@@ -1,7 +1,8 @@
-import RecentAlertsTable from '../components/RecentAlertsTable'
 import { useEffect, useState } from 'react'
 import SummaryCard from '../components/SummaryCard'
 import LineChartCard from '../components/LineChartCard'
+import PieChartCard from '../components/PieChartCard'
+import RecentAlertsTable from '../components/RecentAlertsTable'
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState(null)
@@ -11,6 +12,10 @@ export default function Dashboard() {
     { name: 'T2', value: 0 },
   ])
   const [memoryHistory, setMemoryHistory] = useState([
+    { name: 'T1', value: 0 },
+    { name: 'T2', value: 0 },
+  ])
+  const [networkHistory, setNetworkHistory] = useState([
     { name: 'T1', value: 0 },
     { name: 'T2', value: 0 },
   ])
@@ -54,6 +59,14 @@ export default function Dashboard() {
           { name: timeLabel, value: Number(metricsData.memory) || 0 },
         ])
 
+        setNetworkHistory((prev) => [
+          ...prev.slice(-9),
+          {
+            name: timeLabel,
+            value: Number((metricsData.network / 1024 / 1024).toFixed(2)) || 0,
+          },
+        ])
+
         setError('')
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
@@ -63,6 +76,7 @@ export default function Dashboard() {
 
     fetchData()
     const interval = setInterval(fetchData, 5000)
+
     return () => clearInterval(interval)
   }, [])
 
@@ -82,6 +96,13 @@ export default function Dashboard() {
   const criticalAlerts = alerts.filter(
     (alert) => alert.status === 'Critical'
   ).length
+
+  const warningAlerts = alerts.filter(
+    (alert) => alert.status === 'Warning' || alert.status === 'High'
+  ).length
+
+  const normalAlerts =
+    alerts.length === 1 && alerts[0].status === 'All systems normal' ? 1 : 0
 
   const summaryData = [
     {
@@ -105,11 +126,45 @@ export default function Dashboard() {
       color: 'text-blue-500',
     },
     {
-  title: 'Network',
-  value: `${(metrics.network / 1024 / 1024).toFixed(2)} MB`,
-  color: 'text-purple-500',
-  },
+      title: 'Network',
+      value: `${(metrics.network / 1024 / 1024).toFixed(2)} MB`,
+      color: 'text-purple-500',
+    },
   ]
+
+  const alertPieData = [
+    { name: 'Critical', value: criticalAlerts },
+    { name: 'Warning', value: warningAlerts },
+    { name: 'Normal', value: normalAlerts },
+  ]
+
+  const tableAlerts =
+    alerts.length === 1 && alerts[0].status === 'All systems normal'
+      ? [
+          {
+            id: 1,
+            vmName: 'System',
+            alertName: 'No active alerts',
+            severity: 'Info',
+            status: 'Resolved',
+            time: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          },
+        ]
+      : alerts.map((alert, index) => ({
+          id: index + 1,
+          vmName: 'Local VM',
+          alertName: `${alert.type} usage alert`,
+          severity: alert.status === 'Critical' ? 'Critical' : 'Warning',
+          status: 'Active',
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        }))
+
   return (
     <div>
       <div className="mb-6">
@@ -119,7 +174,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
         {summaryData.map((item, index) => (
           <SummaryCard
             key={index}
@@ -129,46 +184,22 @@ export default function Dashboard() {
           />
         ))}
       </div>
+
       {activeAlerts === 0 && (
-  <p className="text-green-600 mt-2 font-medium">
-    System is running normally
-  </p>
-)}
+        <p className="text-green-600 mt-2 font-medium mb-6">
+          System is running normally
+        </p>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <LineChartCard title="CPU Usage Trend" data={cpuHistory} dataKey="value" />
         <LineChartCard title="Memory Usage Trend" data={memoryHistory} dataKey="value" />
-      </div> 
+        <LineChartCard title="Network Usage Trend" data={networkHistory} dataKey="value" />
+        <PieChartCard title="Alert Severity Distribution" data={alertPieData} />
+      </div>
+
       <div className="mt-8">
-        <RecentAlertsTable
-          alerts={
-            alerts.length === 1 && alerts[0].status === 'All systems normal'
-              ? [
-                  {
-                    id: 1,
-                    vmName: 'System',
-                    alertName: 'No active alerts',
-                    severity: 'Info',
-                    status: 'Resolved',
-                    time: new Date().toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }),
-                  },
-                ]
-              : alerts.map((alert, index) => ({
-                  id: index + 1,
-                  vmName: 'Local VM',
-                  alertName: `${alert.type} usage alert`,
-                  severity: alert.status === 'Critical' ? 'Critical' : 'Warning',
-                  status: 'Active',
-                  time: new Date().toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }),
-                }))
-          }
-        />
+        <RecentAlertsTable alerts={tableAlerts} />
       </div>
     </div>
   )

@@ -10,9 +10,10 @@ import {
 
 export default function LineChartCard({ title, data, dataKey }) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm p-6">
-      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
-      <div style={{ width: '100%', height: 300 }}>
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 h-80">
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
