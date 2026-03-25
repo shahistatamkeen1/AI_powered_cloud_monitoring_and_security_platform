@@ -1,17 +1,115 @@
+import RecentAlertsTable from '../components/RecentAlertsTable'
+import { useEffect, useState } from 'react'
 import SummaryCard from '../components/SummaryCard'
 import LineChartCard from '../components/LineChartCard'
-import PieChartCard from '../components/PieChartCard'
-import RecentAlertsTable from '../components/RecentAlertsTable'
-import {
-  summaryData,
-  recentAlerts,
-  cpuData,
-  memoryData,
-  networkData,
-  alertPieData,
-} from '../data/mockData'
 
 export default function Dashboard() {
+  const [metrics, setMetrics] = useState(null)
+  const [alerts, setAlerts] = useState([])
+  const [cpuHistory, setCpuHistory] = useState([
+    { name: 'T1', value: 0 },
+    { name: 'T2', value: 0 },
+  ])
+  const [memoryHistory, setMemoryHistory] = useState([
+    { name: 'T1', value: 0 },
+    { name: 'T2', value: 0 },
+  ])
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [metricsRes, alertsRes] = await Promise.all([
+          fetch('http://127.0.0.1:8000/metrics'),
+          fetch('http://127.0.0.1:8000/alerts'),
+        ])
+
+        if (!metricsRes.ok) {
+          throw new Error(`Metrics HTTP error: ${metricsRes.status}`)
+        }
+
+        if (!alertsRes.ok) {
+          throw new Error(`Alerts HTTP error: ${alertsRes.status}`)
+        }
+
+        const metricsData = await metricsRes.json()
+        const alertsData = await alertsRes.json()
+
+        setMetrics(metricsData)
+        setAlerts(alertsData)
+
+        const timeLabel = new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+
+        setCpuHistory((prev) => [
+          ...prev.slice(-9),
+          { name: timeLabel, value: Number(metricsData.cpu) || 0 },
+        ])
+
+        setMemoryHistory((prev) => [
+          ...prev.slice(-9),
+          { name: timeLabel, value: Number(metricsData.memory) || 0 },
+        ])
+
+        setError('')
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err)
+        setError('Could not connect to backend')
+      }
+    }
+
+    fetchData()
+    const interval = setInterval(fetchData, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (error) {
+    return <p className="text-lg p-6 text-red-600">{error}</p>
+  }
+
+  if (!metrics) {
+    return <p className="text-lg p-6">Loading dashboard...</p>
+  }
+
+  const activeAlerts =
+    alerts.length === 1 && alerts[0].status === 'All systems normal'
+      ? 0
+      : alerts.length
+
+  const criticalAlerts = alerts.filter(
+    (alert) => alert.status === 'Critical'
+  ).length
+
+  const summaryData = [
+    {
+      title: 'Total VMs',
+      value: 4,
+      color: 'text-black',
+    },
+    {
+      title: 'Active Alerts',
+      value: activeAlerts,
+      color: 'text-red-500',
+    },
+    {
+      title: 'Critical Alerts',
+      value: criticalAlerts,
+      color: 'text-orange-500',
+    },
+    {
+      title: 'Average CPU',
+      value: `${metrics.cpu}%`,
+      color: 'text-blue-500',
+    },
+    {
+  title: 'Network',
+  value: `${(metrics.network / 1024 / 1024).toFixed(2)} MB`,
+  color: 'text-purple-500',
+  },
+  ]
   return (
     <div>
       <div className="mb-6">
@@ -31,15 +129,47 @@ export default function Dashboard() {
           />
         ))}
       </div>
+      {activeAlerts === 0 && (
+  <p className="text-green-600 mt-2 font-medium">
+    System is running normally
+  </p>
+)}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-        <LineChartCard title="CPU Usage Trend" data={cpuData} dataKey="value" />
-        <LineChartCard title="Memory Usage Trend" data={memoryData} dataKey="value" />
-        <LineChartCard title="Network Usage Trend" data={networkData} dataKey="value" />
-        <PieChartCard title="Alert Severity Distribution" data={alertPieData} />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <LineChartCard title="CPU Usage Trend" data={cpuHistory} dataKey="value" />
+        <LineChartCard title="Memory Usage Trend" data={memoryHistory} dataKey="value" />
+      </div> 
+      <div className="mt-8">
+        <RecentAlertsTable
+          alerts={
+            alerts.length === 1 && alerts[0].status === 'All systems normal'
+              ? [
+                  {
+                    id: 1,
+                    vmName: 'System',
+                    alertName: 'No active alerts',
+                    severity: 'Info',
+                    status: 'Resolved',
+                    time: new Date().toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  },
+                ]
+              : alerts.map((alert, index) => ({
+                  id: index + 1,
+                  vmName: 'Local VM',
+                  alertName: `${alert.type} usage alert`,
+                  severity: alert.status === 'Critical' ? 'Critical' : 'Warning',
+                  status: 'Active',
+                  time: new Date().toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                }))
+          }
+        />
       </div>
-
-      <RecentAlertsTable alerts={recentAlerts} />
     </div>
   )
 }
