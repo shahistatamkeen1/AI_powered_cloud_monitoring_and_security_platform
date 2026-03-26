@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 
 export default function Login() {
@@ -7,6 +7,13 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      navigate('/')
+    }
+  }, [navigate])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -33,16 +40,15 @@ export default function Login() {
       localStorage.setItem('token', data.access_token)
 
       const displayName =
-        data.name ||
         form.email.split('@')[0].charAt(0).toUpperCase() +
-          form.email.split('@')[0].slice(1)
+        form.email.split('@')[0].slice(1)
 
       localStorage.setItem('userName', displayName)
       localStorage.setItem('userEmail', form.email)
 
       navigate('/')
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Something went wrong')
     } finally {
       setLoading(false)
     }

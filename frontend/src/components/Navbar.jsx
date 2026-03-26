@@ -1,31 +1,49 @@
+import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+
 export default function Navbar() {
-  const userName = localStorage.getItem('userName') || 'User'
+  const navigate = useNavigate()
+  const [userName, setUserName] = useState('User')
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    const name = localStorage.getItem('userName')
+    const savedEmail = localStorage.getItem('userEmail')
+
+    if (name) {
+      setUserName(name)
+    }
+
+    if (savedEmail) {
+      setEmail(savedEmail)
+    }
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('userName')
     localStorage.removeItem('userEmail')
-    window.location.href = '/login'
+    navigate('/login')
   }
 
   return (
-    <div className="w-full bg-white border-b px-6 py-4 flex justify-between items-center">
-      <h2 className="text-2xl font-semibold">
+    <header className="flex items-center justify-between border-b border-gray-300 bg-white px-8 py-5">
+      <h1 className="text-2xl font-bold">
         AI-Powered Cloud Monitoring Dashboard
-      </h2>
+      </h1>
 
       <div className="flex items-center gap-4">
-        <div className="text-sm text-gray-600">
-          Welcome, <span className="font-semibold text-black">{userName}</span>
-        </div>
+        <span title={email} className="text-lg cursor-pointer">
+          Welcome, <strong>{userName}</strong>
+        </span>
 
         <button
           onClick={handleLogout}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm"
+          className="rounded-lg bg-red-500 px-5 py-3 text-white font-semibold hover:bg-red-600 transition"
         >
           Logout
         </button>
       </div>
-    </div>
+    </header>
   )
 }

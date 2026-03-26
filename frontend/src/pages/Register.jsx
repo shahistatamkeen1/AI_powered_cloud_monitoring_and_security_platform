@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 
 export default function Register() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ username: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      navigate('/')
+    }
+  }, [navigate])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -30,13 +37,9 @@ export default function Register() {
         throw new Error(data.detail || 'Registration failed')
       }
 
-      localStorage.setItem('token', data.access_token)
-      localStorage.setItem('userName', form.name)
-      localStorage.setItem('userEmail', form.email)
-
-      navigate('/')
+      navigate('/login')
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -56,9 +59,9 @@ export default function Register() {
           <div className="mb-4">
             <input
               type="text"
-              name="name"
+              name="username"
               placeholder="Full name"
-              value={form.name}
+              value={form.username}
               onChange={handleChange}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
