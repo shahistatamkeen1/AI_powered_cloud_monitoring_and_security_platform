@@ -41,8 +41,9 @@ export default function Login() {
       localStorage.setItem('token', data.access_token)
 
       const displayName =
+        data.name ||
         form.email.split('@')[0].charAt(0).toUpperCase() +
-        form.email.split('@')[0].slice(1)
+          form.email.split('@')[0].slice(1)
 
       localStorage.setItem('userName', displayName)
       localStorage.setItem('userEmail', form.email)

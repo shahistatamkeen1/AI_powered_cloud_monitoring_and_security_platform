@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   LineChart,
   Line,
@@ -24,40 +24,14 @@ export default function Dashboard() {
     network: 0,
   })
 
+  const [metricsTrend, setMetricsTrend] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const cpuTrend = [
-    { name: '10 AM', value: 10 },
-    { name: '11 AM', value: 25 },
-    { name: '12 PM', value: stats.cpu },
-    { name: '1 PM', value: stats.cpu },
-  ]
-
-  const memoryTrend = [
-    { name: '10 AM', value: 15 },
-    { name: '11 AM', value: 35 },
-    { name: '12 PM', value: stats.memory },
-    { name: '1 PM', value: stats.memory },
-  ]
-
-  const networkTrend = [
-    { name: '10 AM', value: 1.2 },
-    { name: '11 AM', value: 2.8 },
-    { name: '12 PM', value: (stats.network / 1024 / 1024).toFixed(2) },
-    { name: '1 PM', value: (stats.network / 1024 / 1024).toFixed(2) },
-  ]
-
-  const severityData = [
-    { name: 'Critical', value: stats.criticalAlerts },
-    { name: 'Warning', value: stats.activeAlerts - stats.criticalAlerts },
-    { name: 'Healthy', value: stats.totalVMs - stats.activeAlerts > 0 ? stats.totalVMs - stats.activeAlerts : 0 },
-  ]
+  const [timeFilter, setTimeFilter] = useState('1min')
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true)
         setError('')
 
         const [metricsRes, alertsRes] = await Promise.all([
@@ -78,14 +52,28 @@ export default function Dashboard() {
           (alert) => alert.severity === 'Critical'
         ).length
 
+        const summary = metricsData.summary || {}
+        const trend = Array.isArray(metricsData.trend) ? metricsData.trend : []
+
         setStats({
           totalVMs: 4,
           activeAlerts,
           criticalAlerts,
-          cpu: metricsData.cpu || 0,
-          memory: metricsData.memory || 0,
-          network: metricsData.network || 0,
+          cpu: Number(summary.cpu) || 0,
+          memory: Number(summary.memory) || 0,
+          network: Number(summary.network) || 0,
         })
+
+        setMetricsTrend(
+          trend.map((item, index) => ({
+            id: index,
+            time: item.time || '',
+            recorded_at: item.recorded_at || null,
+            cpu: Number(item.cpu) || 0,
+            memory: Number(item.memory) || 0,
+            network: Number(item.network) || 0,
+          }))
+        )
       } catch (err) {
         setError(err.message || 'Could not connect to backend')
       } finally {
@@ -94,7 +82,164 @@ export default function Dashboard() {
     }
 
     fetchDashboardData()
+    const interval = setInterval(fetchDashboardData, 10000)
+
+    return () => clearInterval(interval)
   }, [])
+
+  const groupedTrend = useMemo(() => {
+    if (!metricsTrend.length) return []
+
+    // If backend returns real timestamp, use precise grouping.
+    const hasRealTimestamp = metricsTrend.some((item) => item.recorded_at)
+
+    if (hasRealTimestamp) {
+      const bucketMinutes =
+        timeFilter === '1min' ? 1 :
+        timeFilter === '5min' ? 5 :
+        timeFilter === '15min' ? 15 : 60
+
+      const buckets = {}
+
+      metricsTrend.forEach((item) => {
+        const date = new Date(item.recorded_at)
+        if (Number.isNaN(date.getTime())) return
+
+        const bucketDate = new Date(date)
+        bucketDate.setSeconds(0, 0)
+
+        const minute = bucketDate.getMinutes()
+        const flooredMinute = Math.floor(minute / bucketMinutes) * bucketMinutes
+        bucketDate.setMinutes(flooredMinute)
+
+        const key = bucketDate.toISOString()
+
+        if (!buckets[key]) {
+          buckets[key] = {
+            time: bucketDate.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            cpuTotal: 0,
+            memoryTotal: 0,
+            networkTotal: 0,
+            count: 0,
+          }
+        }
+
+        buckets[key].cpuTotal += item.cpu
+        buckets[key].memoryTotal += item.memory
+        buckets[key].networkTotal += item.network
+        buckets[key].count += 1
+      })
+
+      return Object.values(buckets).map((bucket) => ({
+        time: bucket.time,
+        cpu: Number((bucket.cpuTotal / bucket.count).toFixed(2)),
+        memory: Number((bucket.memoryTotal / bucket.count).toFixed(2)),
+        network: Number((bucket.networkTotal / bucket.count).toFixed(2)),
+      }))
+    }
+
+    // Fallback for current backend response that only has visible "time"
+    const minuteBuckets = {}
+
+    metricsTrend.forEach((item) => {
+      const key = item.time
+
+      if (!minuteBuckets[key]) {
+        minuteBuckets[key] = {
+          time: item.time,
+          cpuTotal: 0,
+          memoryTotal: 0,
+          networkTotal: 0,
+          count: 0,
+        }
+      }
+
+      minuteBuckets[key].cpuTotal += item.cpu
+      minuteBuckets[key].memoryTotal += item.memory
+      minuteBuckets[key].networkTotal += item.network
+      minuteBuckets[key].count += 1
+    })
+
+    const mergedByMinute = Object.values(minuteBuckets).map((bucket) => ({
+      time: bucket.time,
+      cpu: Number((bucket.cpuTotal / bucket.count).toFixed(2)),
+      memory: Number((bucket.memoryTotal / bucket.count).toFixed(2)),
+      network: Number((bucket.networkTotal / bucket.count).toFixed(2)),
+    }))
+
+    let step = 1
+    if (timeFilter === '1min') step = 1
+    if (timeFilter === '5min') step = 5
+    if (timeFilter === '15min') step = 15
+    if (timeFilter === '1hr') step = 60
+
+    const result = []
+
+    for (let i = 0; i < mergedByMinute.length; i += step) {
+      const chunk = mergedByMinute.slice(i, i + step)
+      if (!chunk.length) continue
+
+      const avgCpu = chunk.reduce((sum, item) => sum + item.cpu, 0) / chunk.length
+      const avgMemory = chunk.reduce((sum, item) => sum + item.memory, 0) / chunk.length
+      const avgNetwork = chunk.reduce((sum, item) => sum + item.network, 0) / chunk.length
+
+      result.push({
+        time: chunk[chunk.length - 1].time,
+        cpu: Number(avgCpu.toFixed(2)),
+        memory: Number(avgMemory.toFixed(2)),
+        network: Number(avgNetwork.toFixed(2)),
+      })
+    }
+
+    return result
+  }, [metricsTrend, timeFilter])
+
+  const cpuTrend = useMemo(
+    () =>
+      groupedTrend.map((item) => ({
+        time: item.time,
+        value: item.cpu,
+      })),
+    [groupedTrend]
+  )
+
+  const memoryTrend = useMemo(
+    () =>
+      groupedTrend.map((item) => ({
+        time: item.time,
+        recorded_at: item.recorded_at,
+        value: item.memory,
+      })),
+    [groupedTrend]
+  )
+
+  const networkTrend = useMemo(
+    () =>
+      groupedTrend.map((item) => ({
+        time: item.time,
+        recorded_at: item.recorded_at,
+        value: Number((item.network / 1024 / 1024).toFixed(2)),
+      })),
+    [groupedTrend]
+  )
+
+  const severityData = useMemo(
+    () => [
+      { name: 'Critical', value: stats.criticalAlerts },
+      {
+        name: 'Warning',
+        value: Math.max(stats.activeAlerts - stats.criticalAlerts, 0),
+      },
+      {
+        name: 'Healthy',
+        value: Math.max(stats.totalVMs - stats.activeAlerts, 0),
+      },
+    ],
+    [stats]
+  )
 
   if (loading) {
     return <p className="text-gray-500">Loading dashboard...</p>
@@ -106,16 +251,48 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-gray-500 mb-6">
-        Monitor system health, alerts, and AI-powered insights.
-      </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <p className="text-gray-500">
+            Monitor system health, alerts, and AI-powered insights.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-gray-600 font-medium">
+            Time Filter:
+          </label>
+          <select
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
+          >
+            <option value="1min">1 min</option>
+            <option value="5min">5 min</option>
+            <option value="15min">15 min</option>
+            <option value="1hr">1 hr</option>
+          </select>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <StatCard title="Total VMs" value={stats.totalVMs} />
-        <StatCard title="Active Alerts" value={stats.activeAlerts} valueClass="text-red-500" />
-        <StatCard title="Critical Alerts" value={stats.criticalAlerts} valueClass="text-orange-500" />
-        <StatCard title="Average CPU" value={`${stats.cpu}%`} valueClass="text-blue-500" />
+        <StatCard
+          title="Active Alerts"
+          value={stats.activeAlerts}
+          valueClass="text-red-500"
+        />
+        <StatCard
+          title="Critical Alerts"
+          value={stats.criticalAlerts}
+          valueClass="text-orange-500"
+        />
+        <StatCard
+          title="Average CPU"
+          value={`${stats.cpu}%`}
+          valueClass="text-blue-500"
+        />
         <StatCard
           title="Network"
           value={`${(stats.network / 1024 / 1024).toFixed(2)} MB`}
@@ -124,38 +301,56 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ChartCard title="CPU Usage Trend">
+        <ChartCard title={`CPU Usage Trend (${labelFromFilter(timeFilter)})`}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={cpuTrend}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 60]} />
+              <XAxis dataKey="time" minTickGap={30} />
+              <YAxis domain={[0, 100]} />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#2563eb"
+                strokeWidth={3}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Memory Usage Trend">
+        <ChartCard title={`Memory Usage Trend (${labelFromFilter(timeFilter)})`}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={memoryTrend}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 80]} />
+              <XAxis dataKey="time" minTickGap={30} />
+              <YAxis domain={[0, 100]} />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#7c3aed"
+                strokeWidth={3}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Network Usage Trend">
+        <ChartCard title={`Network Usage Trend (${labelFromFilter(timeFilter)})`}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={networkTrend}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
+              <XAxis dataKey="time" minTickGap={30} />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#9333ea"
+                strokeWidth={3}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -181,6 +376,14 @@ export default function Dashboard() {
       </div>
     </div>
   )
+}
+
+function labelFromFilter(filter) {
+  if (filter === '1min') return '1 Min'
+  if (filter === '5min') return '5 Min'
+  if (filter === '15min') return '15 Min'
+  if (filter === '1hr') return '1 Hour'
+  return filter
 }
 
 function StatCard({ title, value, valueClass = '' }) {

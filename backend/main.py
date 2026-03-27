@@ -1,11 +1,17 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
+import threading
+import time
+import random
+from datetime import datetime
+from sqlalchemy import text
 
 from database import Base, engine
 from models import User
 from auth import get_current_user
 from routes.auth_routes import router as auth_router
+from routes.metrics import router as metrics_router
 from schemas import Alert, Log, Insight, HistoryItem
 
 app = FastAPI(title="AI Cloud Monitoring Backend")
@@ -24,6 +30,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
+app.include_router(metrics_router)
 
 
 @app.get("/")
@@ -31,22 +38,11 @@ def root():
     return {"message": "Backend is running"}
 
 
-# Protected route
 @app.get("/dashboard")
 def dashboard(current_user: User = Depends(get_current_user)):
     return {
         "message": f"Welcome {current_user.username}",
         "email": current_user.email
-    }
-
-
-# Public routes for frontend data loading
-@app.get("/metrics")
-def get_metrics():
-    return {
-        "cpu": 42,
-        "memory": 68,
-        "network": 5242880
     }
 
 
@@ -148,3 +144,30 @@ def get_history():
             "time": "10:30 AM"
         }
     ]
+
+
+def generate_metrics():
+    while True:
+        cpu = random.randint(40, 90)
+        memory = random.randint(50, 85)
+        network = random.randint(100, 300)
+
+        with engine.connect() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO metrics (cpu_usage, memory_usage, network_usage, recorded_at)
+                    VALUES (:cpu, :memory, :network, :time)
+                """),
+                {
+                    "cpu": cpu,
+                    "memory": memory,
+                    "network": network,
+                    "time": datetime.now()
+                }
+            )
+            conn.commit()
+
+        time.sleep(5)
+
+
+threading.Thread(target=generate_metrics, daemon=True).start()
