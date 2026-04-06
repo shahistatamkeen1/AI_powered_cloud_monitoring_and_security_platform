@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function getSeverityColor(severity) {
   if (severity === 'Critical') return 'bg-red-100 text-red-600'
@@ -7,13 +7,18 @@ function getSeverityColor(severity) {
 }
 
 function getStatusColor(status) {
-  if (status === 'Active') return 'bg-red-100 text-red-600'
+  if (status === 'Active' || status === 'Open') return 'bg-red-100 text-red-600'
   if (status === 'Acknowledged') return 'bg-blue-100 text-blue-600'
   if (status === 'Resolved') return 'bg-green-100 text-green-600'
+  return 'bg-gray-100 text-gray-600'
 }
 
-export default function AlertsTable({ data }) {
+export default function AlertsTable({ data = [] }) {
   const [alerts, setAlerts] = useState(data)
+
+  useEffect(() => {
+    setAlerts(data)
+  }, [data])
 
   const handleAcknowledge = (id) => {
     const updated = alerts.map((alert) =>
@@ -29,11 +34,20 @@ export default function AlertsTable({ data }) {
     setAlerts(updated)
   }
 
+  if (!alerts.length) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <h2 className="text-xl font-semibold mb-4">All Alerts</h2>
+        <p className="text-gray-500">No alerts available.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 overflow-x-auto">
       <h2 className="text-xl font-semibold mb-4">All Alerts</h2>
 
-      <table className="w-full text-left">
+      <table className="w-full text-left min-w-[800px]">
         <thead>
           <tr className="text-gray-500 text-sm border-b">
             <th className="py-3">VM</th>
@@ -47,29 +61,40 @@ export default function AlertsTable({ data }) {
 
         <tbody>
           {alerts.map((alert) => (
-            <tr key={alert.id} className="border-b last:border-none hover:bg-gray-50">
-              <td className="py-4">{alert.vmName}</td>
+            <tr
+              key={alert.id}
+              className="border-b last:border-none hover:bg-gray-50"
+            >
+              <td className="py-4 font-medium">{alert.vmName}</td>
               <td>{alert.alertName}</td>
 
               <td>
-                <span className={`px-3 py-1 rounded-full text-xs ${getSeverityColor(alert.severity)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${getSeverityColor(
+                    alert.severity
+                  )}`}
+                >
                   {alert.severity}
                 </span>
               </td>
 
               <td>
-                <span className={`px-3 py-1 rounded-full text-xs ${getStatusColor(alert.status)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                    alert.status
+                  )}`}
+                >
                   {alert.status}
                 </span>
               </td>
 
               <td className="text-gray-500">{alert.time}</td>
 
-              <td className="flex gap-2">
-                {alert.status !== 'Acknowledged' && (
+              <td className="flex gap-2 py-4">
+                {alert.status !== 'Acknowledged' && alert.status !== 'Resolved' && (
                   <button
                     onClick={() => handleAcknowledge(alert.id)}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg"
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                   >
                     Acknowledge
                   </button>
@@ -78,7 +103,7 @@ export default function AlertsTable({ data }) {
                 {alert.status !== 'Resolved' && (
                   <button
                     onClick={() => handleResolve(alert.id)}
-                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-lg"
+                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
                   >
                     Resolve
                   </button>

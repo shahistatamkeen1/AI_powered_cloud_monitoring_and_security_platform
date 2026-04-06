@@ -1,58 +1,71 @@
 import { useState } from 'react'
-import { aiInsightsData } from '../data/mockData'
-import InsightCard from '../components/InsightCard'
 
 export default function Insights() {
-  const [selectedInsight, setSelectedInsight] = useState(aiInsightsData[0])
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const analyze = async () => {
+    setLoading(true)
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/ai/analyze', {
+        method: 'POST',
+      })
+
+      const data = await res.json()
+      console.log(data)
+
+      setResult(data)
+    } catch (err) {
+      console.error(err)
+    }
+
+    setLoading(false)
+  }
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">AI Insights</h1>
-        <p className="text-gray-500 mt-1">
-          AI explains system issues in simple words and suggests possible fixes.
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-6">AI Insights</h1>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="space-y-4">
-          {aiInsightsData.map((insight) => (
-            <InsightCard
-              key={insight.id}
-              insight={insight}
-              isSelected={selectedInsight.id === insight.id}
-              onClick={() => setSelectedInsight(insight)}
-            />
-          ))}
+      <button
+        onClick={analyze}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-6"
+      >
+        {loading ? 'Analyzing...' : 'Run AI Analysis'}
+      </button>
+
+      {result && (
+        <div className="bg-white p-6 rounded shadow space-y-3">
+
+          <h2 className="text-xl font-semibold">System Metrics</h2>
+          <p><strong>CPU:</strong> {result.cpu}%</p>
+          <p><strong>Memory:</strong> {result.memory}%</p>
+
+          <hr />
+
+          <h2 className="text-xl font-semibold">AI Analysis</h2>
+
+          <p><strong>Issue:</strong> {result.ai_analysis.issue}</p>
+          <p><strong>Cause:</strong> {result.ai_analysis.cause}</p>
+          <p><strong>Recommendation:</strong> {result.ai_analysis.recommendation}</p>
+
+          <p>
+            <strong>Severity:</strong>{' '}
+            <span
+              className={
+                result.ai_analysis.severity === 'High'
+                  ? 'text-red-600 font-bold'
+                  : result.ai_analysis.severity === 'Medium'
+                  ? 'text-yellow-600 font-bold'
+                  : 'text-green-600 font-bold'
+              }
+            >
+              {result.ai_analysis.severity}
+            </span>
+          </p>
+
         </div>
-
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-2xl font-bold mb-2">{selectedInsight.title}</h2>
-
-          <div className="space-y-6 mt-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Explanation</h3>
-              <p className="text-gray-700 leading-7">
-                {selectedInsight.explanation}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Suggested Fix</h3>
-              <p className="text-gray-700 leading-7">
-                {selectedInsight.suggestedFix}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Summary</h3>
-              <p className="text-gray-700 leading-7">
-                {selectedInsight.summary}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
