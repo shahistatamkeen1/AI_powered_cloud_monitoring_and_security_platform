@@ -5,13 +5,17 @@ from typing import List
 from backend.database import Base, engine
 from backend.models import User
 from backend.auth import get_current_user
+
 from backend.routes.ai import router as ai_router
 from backend.routes.auth_routes import router as auth_router
+from backend.routes.metrics import router as metrics_router
+
 from backend.schemas import Alert, Log, Insight, HistoryItem
 
+# ✅ Create FastAPI app FIRST
 app = FastAPI(title="AI Cloud Monitoring Backend")
 
-# CORS (frontend connection)
+# ✅ CORS (frontend connection)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,19 +24,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create DB tables
+# ✅ Create DB tables
 Base.metadata.create_all(bind=engine)
 
-# Include routers
+# ✅ Include routers
 app.include_router(auth_router)
 app.include_router(ai_router)
+app.include_router(metrics_router)   # 🔥 real-time metrics
 
+# ✅ Root
 @app.get("/")
 def root():
     return {"message": "Backend is running"}
 
 
-# Protected route
+# ✅ Protected route
 @app.get("/dashboard")
 def dashboard(current_user: User = Depends(get_current_user)):
     return {
@@ -41,16 +47,10 @@ def dashboard(current_user: User = Depends(get_current_user)):
     }
 
 
-# Public routes
-@app.get("/metrics")
-def get_metrics():
-    return {
-        "cpu": 42,
-        "memory": 68,
-        "network": 5242880
-    }
+# ❌ REMOVE OLD /metrics (NOW HANDLED IN metrics.py)
 
 
+# ✅ Alerts
 @app.get("/alerts", response_model=List[Alert])
 def get_alerts():
     return [
@@ -73,6 +73,7 @@ def get_alerts():
     ]
 
 
+# ✅ Logs
 @app.get("/logs", response_model=List[Log])
 def get_logs():
     return [
@@ -86,6 +87,7 @@ def get_logs():
     ]
 
 
+# ✅ Insights
 @app.get("/insights", response_model=List[Insight])
 def get_insights():
     return [
@@ -98,6 +100,7 @@ def get_insights():
     ]
 
 
+# ✅ History
 @app.get("/history", response_model=List[HistoryItem])
 def get_history():
     return [
