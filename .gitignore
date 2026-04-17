@@ -5,3 +5,9 @@ __pycache__/
 .env
 .env.*
 !*.env.example
+backend/.env
+.env
+venv/
+__pycache__/
+*.pyc
+node_modules/
