@@ -1,27 +1,71 @@
 from fastapi import APIRouter
-import psutil
+from sqlalchemy import text
+from ..database import engine
+from openai import OpenAI
+import os
 
-router = APIRouter()
+router = APIRouter(prefix="/metrics", tags=["metrics"])
 
-@router.post("/ai/analyze")
-def analyze_issue():
-    cpu = psutil.cpu_percent()
-    memory = psutil.virtual_memory().percent
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    if cpu > 80:
+@router.get("/ai-insights")
+def get_ai_insights():
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT TOP 10 cpu_usage, memory_usage, network_usage, recorded_at
+            FROM metrics
+            ORDER BY recorded_at DESC
+        """))
+        rows = result.fetchall()
+
+    if not rows:
         return {
-            "issue": "High CPU usage",
-            "cause": "Heavy processing load",
-            "solution": "Check running processes or scale resources"
+            "status": "success",
+            "message": "No metrics data available",
+            "insights": ["No data available yet."]
         }
-    elif memory > 85:
-        return {
-            "issue": "High memory usage",
-            "cause": "Applications consuming too much RAM",
-            "solution": "Restart services or optimize memory usage"
-        }
-    else:
-        return {
-            "status": "System is stable",
-            "message": "No major issues detected"
-        }
+
+    rows = list(rows)
+    latest = rows[0]
+
+    cpu_values = [float(r[0]) for r in rows]
+    memory_values = [float(r[1]) for r in rows]
+    network_values = [float(r[2]) for r in rows]
+
+    prompt = f"""
+You are an AI cloud monitoring assistant.
+
+Analyze these recent cloud metrics and return:
+1. Overall health status
+2. 3 short insights
+3. 1 recommendation
+
+Recent CPU values: {cpu_values}
+Recent Memory values: {memory_values}
+Recent Network values: {network_values}
+
+Latest CPU: {float(latest[0])}
+Latest Memory: {float(latest[1])}
+Latest Network: {float(latest[2])}
+
+Keep the response short, practical, and easy to understand.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You analyze infrastructure metrics."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    ai_text = response.choices[0].message.content
+
+    return {
+        "status": "success",
+        "message": "AI analysis completed",
+        "cpu": float(latest[0]),
+        "memory": float(latest[1]),
+        "network": float(latest[2]),
+        "insights": ai_text
+    }

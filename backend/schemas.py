@@ -45,9 +45,10 @@ class Insight(BaseModel):
     severity: str
 
 
-# -------- HISTORY --------
+# -------- HISTORY (UPDATED) --------
 class HistoryItem(BaseModel):
     id: int
     event: str
     user: str
+    status: str   # ✅ ADD THIS LINE
     time: str

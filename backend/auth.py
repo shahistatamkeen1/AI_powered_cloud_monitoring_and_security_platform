@@ -5,14 +5,13 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import User
+from .database import get_db
+from .models import User
 
 SECRET_KEY = "cloudmonitor2026_super_secret_backend_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# bcrypt_sha256 safely handles long passwords by pre-hashing before bcrypt.
 pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 

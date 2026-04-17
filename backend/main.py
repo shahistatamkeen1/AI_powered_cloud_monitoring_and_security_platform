@@ -7,12 +7,12 @@ import random
 from datetime import datetime
 from sqlalchemy import text
 
-from database import Base, engine
-from models import User
-from auth import get_current_user
-from routes.auth_routes import router as auth_router
-from routes.metrics import router as metrics_router
-from schemas import Alert, Log, Insight, HistoryItem
+from .database import Base, engine
+from .models import User
+from .auth import get_current_user
+from .routes.auth_routes import router as auth_router
+from .routes.metrics import router as metrics_router
+from .schemas import Alert, Log, Insight, HistoryItem
 
 app = FastAPI(title="AI Cloud Monitoring Backend")
 
@@ -31,6 +31,12 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
 app.include_router(metrics_router)
+
+
+@app.on_event("startup")
+def start_metrics_thread():
+    thread = threading.Thread(target=generate_metrics, daemon=True)
+    thread.start()
 
 
 @app.get("/")
@@ -135,13 +141,29 @@ def get_history():
             "id": 1,
             "event": "User login",
             "user": "Harini",
+            "status": "Acknowledged",
             "time": "09:00 AM"
         },
         {
             "id": 2,
             "event": "Alert resolved",
             "user": "Harini",
+            "status": "Resolved",
             "time": "10:30 AM"
+        },
+        {
+            "id": 3,
+            "event": "AI analysis completed",
+            "user": "System",
+            "status": "Acknowledged",
+            "time": "11:15 AM"
+        },
+        {
+            "id": 4,
+            "event": "Critical alert generated",
+            "user": "System",
+            "status": "Critical",
+            "time": "11:45 AM"
         }
     ]
 
@@ -168,6 +190,3 @@ def generate_metrics():
             conn.commit()
 
         time.sleep(5)
-
-
-threading.Thread(target=generate_metrics, daemon=True).start()

@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import User
-from schemas import UserCreate, UserLogin, Token
-from auth import hash_password, authenticate_user, create_access_token
+from ..database import get_db
+from ..models import User
+from ..schemas import UserCreate, UserLogin, Token
+from ..auth import hash_password, authenticate_user, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -49,7 +49,6 @@ def login_form(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    # Swagger sends username/password; here username = user's email
     db_user = authenticate_user(db, form_data.username, form_data.password)
 
     if not db_user:
