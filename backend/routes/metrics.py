@@ -10,7 +10,8 @@ load_dotenv()
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
 
 
 @router.get("/history")
@@ -124,6 +125,9 @@ Keep the output short, practical, and easy to understand.
 """
 
     try:
+        if not client:
+            raise RuntimeError("OPENAI_API_KEY is missing")
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -140,7 +144,6 @@ Keep the output short, practical, and easy to understand.
 
         content = response.choices[0].message.content.strip()
 
-        # Clean possible markdown fences if model returns them
         if content.startswith("```"):
             content = content.strip("`")
             if content.startswith("json"):
