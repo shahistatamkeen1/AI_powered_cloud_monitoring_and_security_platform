@@ -12,7 +12,7 @@ export default function Alerts() {
         setLoading(true)
         setError('')
 
-        const res = await fetch('http://127.0.0.1:8000/alerts')
+        const res = await fetch('http://52.234.161.141:8000/alerts')
         const data = await res.json()
 
         if (!res.ok) {

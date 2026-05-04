@@ -1,7 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://52.234.161.141:8000";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("token");
+
   return token
     ? {
         "Content-Type": "application/json",
@@ -16,6 +18,7 @@ export async function fetchDashboard() {
   const res = await fetch(`${API_BASE_URL}/dashboard`, {
     headers: getAuthHeaders(),
   });
+
   if (!res.ok) throw new Error("Failed to load dashboard");
   return res.json();
 }
@@ -67,3 +70,5 @@ export async function fetchAiHistory() {
   if (!res.ok) throw new Error("Failed to load AI history");
   return res.json();
 }
+
+export { API_BASE_URL, getAuthHeaders };

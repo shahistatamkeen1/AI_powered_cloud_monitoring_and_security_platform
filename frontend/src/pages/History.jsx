@@ -18,7 +18,7 @@ export default function History() {
       try {
         setError('')
 
-        const res = await fetch('http://127.0.0.1:8000/history')
+        const res = await fetch('http://52.234.161.141:8000/history')
 
         if (!res.ok) {
           throw new Error('Failed to fetch history')

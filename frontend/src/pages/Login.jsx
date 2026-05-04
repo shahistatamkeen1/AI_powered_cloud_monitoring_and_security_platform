@@ -26,31 +26,41 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/auth/login', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+
+const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
 
-      const data = await res.json()
+      const text = await res.text()
+      console.log('LOGIN STATUS:', res.status)
+      console.log('LOGIN RESPONSE:', text)
 
       if (!res.ok) {
-        throw new Error(data.detail || 'Login failed')
+        throw new Error(text || 'Login failed')
       }
 
+      if (!text) {
+        throw new Error('Empty response from backend')
+      }
+
+      const data = JSON.parse(text)
+
       localStorage.setItem('token', data.access_token)
+      localStorage.setItem('token_type', data.token_type || 'bearer')
 
       const displayName =
-        data.name ||
         form.email.split('@')[0].charAt(0).toUpperCase() +
-          form.email.split('@')[0].slice(1)
+        form.email.split('@')[0].slice(1)
 
       localStorage.setItem('userName', displayName)
       localStorage.setItem('userEmail', form.email)
 
       navigate('/dashboard')
     } catch (err) {
-      setError(err.message || 'Something went wrong')
+      setError(err.message || 'Failed to fetch')
     } finally {
       setLoading(false)
     }
@@ -69,7 +79,7 @@ export default function Login() {
             placeholder="Email address"
             value={form.email}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
@@ -81,14 +91,14 @@ export default function Login() {
             placeholder="Password"
             value={form.password}
             onChange={handleChange}
-            className="w-full px-4 py-3 pr-20 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 pr-20 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
 
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600 hover:text-blue-800"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600"
           >
             {showPassword ? 'Hide' : 'Show'}
           </button>
@@ -101,20 +111,11 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full font-semibold py-3 rounded-lg text-white transition ${
-            loading
-              ? 'bg-gray-500 cursor-not-allowed'
-              : 'bg-black hover:bg-gray-900'
+          className={`w-full font-semibold py-3 rounded-lg text-white ${
+            loading ? 'bg-gray-500' : 'bg-black hover:bg-gray-900'
           }`}
         >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              Logging in...
-            </span>
-          ) : (
-            'Login'
-          )}
+          {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 

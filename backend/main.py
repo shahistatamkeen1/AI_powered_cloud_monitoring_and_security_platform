@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Depends, Request
+from fastapi.responses import Response
 from typing import List
 import threading
 import time
@@ -16,16 +16,23 @@ from .schemas import Alert, Log, Insight, HistoryItem
 
 app = FastAPI(title="AI Cloud Monitoring Backend")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+@app.middleware("http")
+async def cors_fix(request: Request, call_next):
+    origin = request.headers.get("origin", "*")
+
+    if request.method == "OPTIONS":
+        response = Response(status_code=200)
+    else:
+        response = await call_next(request)
+
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
+    return response
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -48,7 +55,7 @@ def root():
 def dashboard(current_user: User = Depends(get_current_user)):
     return {
         "message": f"Welcome {current_user.username}",
-        "email": current_user.email
+        "email": current_user.email,
     }
 
 
@@ -61,7 +68,7 @@ def get_alerts():
             "alertName": "CPU Usage High",
             "severity": "Warning",
             "status": "Open",
-            "time": "10:15 AM"
+            "time": "10:15 AM",
         },
         {
             "id": 2,
@@ -69,7 +76,7 @@ def get_alerts():
             "alertName": "Memory Critical",
             "severity": "Critical",
             "status": "Open",
-            "time": "10:18 AM"
+            "time": "10:18 AM",
         },
         {
             "id": 3,
@@ -77,8 +84,8 @@ def get_alerts():
             "alertName": "Disk Space Low",
             "severity": "Warning",
             "status": "Acknowledged",
-            "time": "10:25 AM"
-        }
+            "time": "10:25 AM",
+        },
     ]
 
 
@@ -90,29 +97,29 @@ def get_logs():
             "vmName": "vm-app01",
             "message": "CPU usage exceeded threshold",
             "severity": "Critical",
-            "time": "10:15 AM"
+            "time": "10:15 AM",
         },
         {
             "id": 2,
             "vmName": "vm-db01",
             "message": "Memory usage high",
             "severity": "Warning",
-            "time": "10:05 AM"
+            "time": "10:05 AM",
         },
         {
             "id": 3,
             "vmName": "vm-mon01",
             "message": "System scan completed successfully",
             "severity": "Info",
-            "time": "09:55 AM"
+            "time": "09:55 AM",
         },
         {
             "id": 4,
             "vmName": "vm-dc01",
             "message": "Multiple failed login attempts detected",
             "severity": "Critical",
-            "time": "09:40 AM"
-        }
+            "time": "09:40 AM",
+        },
     ]
 
 
@@ -123,14 +130,14 @@ def get_insights():
             "id": 1,
             "title": "CPU Trend",
             "description": "CPU usage increasing over last 2 hours",
-            "severity": "Warning"
+            "severity": "Warning",
         },
         {
             "id": 2,
             "title": "Memory Optimization",
             "description": "Memory usage stable but high",
-            "severity": "Info"
-        }
+            "severity": "Info",
+        },
     ]
 
 
@@ -142,29 +149,29 @@ def get_history():
             "event": "User login",
             "user": "Harini",
             "status": "Acknowledged",
-            "time": "09:00 AM"
+            "time": "09:00 AM",
         },
         {
             "id": 2,
             "event": "Alert resolved",
             "user": "Harini",
             "status": "Resolved",
-            "time": "10:30 AM"
+            "time": "10:30 AM",
         },
         {
             "id": 3,
             "event": "AI analysis completed",
             "user": "System",
             "status": "Acknowledged",
-            "time": "11:15 AM"
+            "time": "11:15 AM",
         },
         {
             "id": 4,
             "event": "Critical alert generated",
             "user": "System",
             "status": "Critical",
-            "time": "11:45 AM"
-        }
+            "time": "11:45 AM",
+        },
     ]
 
 
@@ -184,8 +191,8 @@ def generate_metrics():
                     "cpu": cpu,
                     "memory": memory,
                     "network": network,
-                    "time": datetime.now()
-                }
+                    "time": datetime.now(),
+                },
             )
             conn.commit()
 
