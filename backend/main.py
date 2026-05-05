@@ -17,6 +17,7 @@ from .schemas import Alert, Log, Insight, HistoryItem
 app = FastAPI(title="AI Cloud Monitoring Backend")
 
 
+# ✅ CORS FIX
 @app.middleware("http")
 async def cors_fix(request: Request, call_next):
     origin = request.headers.get("origin", "*")
@@ -34,23 +35,57 @@ async def cors_fix(request: Request, call_next):
     return response
 
 
+# ✅ Create DB tables
 Base.metadata.create_all(bind=engine)
 
+# ✅ Include routes
 app.include_router(auth_router)
 app.include_router(metrics_router)
 
 
+# ✅ Background metrics generator (FIXED)
+def generate_metrics():
+    while True:
+        try:
+            cpu = random.randint(40, 90)
+            memory = random.randint(50, 85)
+            network = random.randint(100, 300)
+
+            with engine.begin() as conn:
+                conn.execute(
+                    text("""
+                        INSERT INTO metrics (cpu_usage, memory_usage, network_usage, recorded_at)
+                        VALUES (:cpu, :memory, :network, :time)
+                    """),
+                    {
+                        "cpu": cpu,
+                        "memory": memory,
+                        "network": network,
+                        "time": datetime.now(),
+                    },
+                )
+
+
+        except Exception as e:
+            print("DB INSERT ERROR:", e)
+
+        time.sleep(5)
+
+
+# ✅ Start background thread
 @app.on_event("startup")
 def start_metrics_thread():
     thread = threading.Thread(target=generate_metrics, daemon=True)
     thread.start()
 
 
+# ✅ Root
 @app.get("/")
 def root():
     return {"message": "Backend is running"}
 
 
+# ✅ Protected dashboard
 @app.get("/dashboard")
 def dashboard(current_user: User = Depends(get_current_user)):
     return {
@@ -59,141 +94,42 @@ def dashboard(current_user: User = Depends(get_current_user)):
     }
 
 
+# ✅ Alerts
 @app.get("/alerts", response_model=List[Alert])
 def get_alerts():
     return [
-        {
-            "id": 1,
-            "vmName": "vm-app01",
-            "alertName": "CPU Usage High",
-            "severity": "Warning",
-            "status": "Open",
-            "time": "10:15 AM",
-        },
-        {
-            "id": 2,
-            "vmName": "vm-db01",
-            "alertName": "Memory Critical",
-            "severity": "Critical",
-            "status": "Open",
-            "time": "10:18 AM",
-        },
-        {
-            "id": 3,
-            "vmName": "vm-web02",
-            "alertName": "Disk Space Low",
-            "severity": "Warning",
-            "status": "Acknowledged",
-            "time": "10:25 AM",
-        },
+        {"id": 1, "vmName": "vm-app01", "alertName": "CPU Usage High", "severity": "Warning", "status": "Open", "time": "10:15 AM"},
+        {"id": 2, "vmName": "vm-db01", "alertName": "Memory Critical", "severity": "Critical", "status": "Open", "time": "10:18 AM"},
+        {"id": 3, "vmName": "vm-web02", "alertName": "Disk Space Low", "severity": "Warning", "status": "Acknowledged", "time": "10:25 AM"},
     ]
 
 
+# ✅ Logs
 @app.get("/logs", response_model=List[Log])
 def get_logs():
     return [
-        {
-            "id": 1,
-            "vmName": "vm-app01",
-            "message": "CPU usage exceeded threshold",
-            "severity": "Critical",
-            "time": "10:15 AM",
-        },
-        {
-            "id": 2,
-            "vmName": "vm-db01",
-            "message": "Memory usage high",
-            "severity": "Warning",
-            "time": "10:05 AM",
-        },
-        {
-            "id": 3,
-            "vmName": "vm-mon01",
-            "message": "System scan completed successfully",
-            "severity": "Info",
-            "time": "09:55 AM",
-        },
-        {
-            "id": 4,
-            "vmName": "vm-dc01",
-            "message": "Multiple failed login attempts detected",
-            "severity": "Critical",
-            "time": "09:40 AM",
-        },
+        {"id": 1, "vmName": "vm-app01", "message": "CPU usage exceeded threshold", "severity": "Critical", "time": "10:15 AM"},
+        {"id": 2, "vmName": "vm-db01", "message": "Memory usage high", "severity": "Warning", "time": "10:05 AM"},
+        {"id": 3, "vmName": "vm-mon01", "message": "System scan completed successfully", "severity": "Info", "time": "09:55 AM"},
+        {"id": 4, "vmName": "vm-dc01", "message": "Multiple failed login attempts detected", "severity": "Critical", "time": "09:40 AM"},
     ]
 
 
+# ✅ Insights
 @app.get("/insights", response_model=List[Insight])
 def get_insights():
     return [
-        {
-            "id": 1,
-            "title": "CPU Trend",
-            "description": "CPU usage increasing over last 2 hours",
-            "severity": "Warning",
-        },
-        {
-            "id": 2,
-            "title": "Memory Optimization",
-            "description": "Memory usage stable but high",
-            "severity": "Info",
-        },
+        {"id": 1, "title": "CPU Trend", "description": "CPU usage increasing over last 2 hours", "severity": "Warning"},
+        {"id": 2, "title": "Memory Optimization", "description": "Memory usage stable but high", "severity": "Info"},
     ]
 
 
+# ✅ History
 @app.get("/history", response_model=List[HistoryItem])
 def get_history():
     return [
-        {
-            "id": 1,
-            "event": "User login",
-            "user": "Harini",
-            "status": "Acknowledged",
-            "time": "09:00 AM",
-        },
-        {
-            "id": 2,
-            "event": "Alert resolved",
-            "user": "Harini",
-            "status": "Resolved",
-            "time": "10:30 AM",
-        },
-        {
-            "id": 3,
-            "event": "AI analysis completed",
-            "user": "System",
-            "status": "Acknowledged",
-            "time": "11:15 AM",
-        },
-        {
-            "id": 4,
-            "event": "Critical alert generated",
-            "user": "System",
-            "status": "Critical",
-            "time": "11:45 AM",
-        },
+        {"id": 1, "event": "User login", "user": "Harini", "status": "Acknowledged", "time": "09:00 AM"},
+        {"id": 2, "event": "Alert resolved", "user": "Harini", "status": "Resolved", "time": "10:30 AM"},
+        {"id": 3, "event": "AI analysis completed", "user": "System", "status": "Acknowledged", "time": "11:15 AM"},
+        {"id": 4, "event": "Critical alert generated", "user": "System", "status": "Critical", "time": "11:45 AM"},
     ]
-
-
-def generate_metrics():
-    while True:
-        cpu = random.randint(40, 90)
-        memory = random.randint(50, 85)
-        network = random.randint(100, 300)
-
-        with engine.connect() as conn:
-            conn.execute(
-                text("""
-                    INSERT INTO metrics (cpu_usage, memory_usage, network_usage, recorded_at)
-                    VALUES (:cpu, :memory, :network, :time)
-                """),
-                {
-                    "cpu": cpu,
-                    "memory": memory,
-                    "network": network,
-                    "time": datetime.now(),
-                },
-            )
-            conn.commit()
-
-        time.sleep(5)

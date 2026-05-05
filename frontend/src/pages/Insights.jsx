@@ -21,7 +21,7 @@ export default function Insights() {
       setHistoryMessage('')
       setError('')
 
-      const res = await fetch('http://52.234.161.141:8000/metrics/ai-history')
+      const res = await fetch('http://127.0.0.1:8000/metrics/ai-history')
 
       if (!res.ok) {
         throw new Error('Failed to fetch AI history')
@@ -45,7 +45,7 @@ export default function Insights() {
       setHistoryMessage('')
       setResult(null)
 
-      const res = await fetch('http://52.234.161.141:8000/metrics/ai-insights')
+      const res = await fetch('http://127.0.0.1:8000/metrics/ai-insights')
 
       if (!res.ok) {
         throw new Error('Failed to fetch AI insights')
