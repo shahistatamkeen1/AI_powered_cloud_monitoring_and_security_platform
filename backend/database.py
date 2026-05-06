@@ -1,19 +1,18 @@
+import os
+import urllib
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-import urllib
 
-odbc_conn_str = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    "Server=tcp:ai-sql-server123.database.windows.net,1433;"
-    "Database=ai_monitoring_db;"
-    "Uid=azureadmin;"
-    "Pwd=pa$$w0rd;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-    "Connection Timeout=30;"
-)
+load_dotenv()
+
+odbc_conn_str = os.getenv("AZURE_SQL_ODBC_CONNECTION")
+
+if not odbc_conn_str:
+    raise ValueError("AZURE_SQL_ODBC_CONNECTION is not set in environment variables")
 
 params = urllib.parse.quote_plus(odbc_conn_str)
+
 DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
 
 engine = create_engine(
