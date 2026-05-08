@@ -2,11 +2,17 @@ from fastapi import APIRouter
 from sqlalchemy import text
 from ..database import engine
 from openai import OpenAI
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+
+print("API KEY LOADED:", api_key)  # 👈 DEBUG
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=api_key)
 
 @router.get("/ai-insights")
 def get_ai_insights():

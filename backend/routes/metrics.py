@@ -3,14 +3,19 @@ from sqlalchemy import text
 from ..database import engine
 from openai import OpenAI
 from dotenv import load_dotenv
+from pathlib import Path
 import os
 import json
 
-load_dotenv()
+# Load backend/.env correctly
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 api_key = os.getenv("OPENAI_API_KEY")
+print("METRICS API KEY LOADED:", "YES" if api_key else "NO")
+
 client = OpenAI(api_key=api_key) if api_key else None
 
 
@@ -46,12 +51,7 @@ def get_summary():
         row = result.fetchone()
 
     if not row:
-        return {
-            "cpu": 0,
-            "memory": 0,
-            "network": 0,
-            "time": ""
-        }
+        return {"cpu": 0, "memory": 0, "network": 0, "time": ""}
 
     return {
         "cpu": float(row[0]) if row[0] is not None else 0,
@@ -158,7 +158,7 @@ Keep the output short, practical, and easy to understand.
         if not isinstance(insights, list):
             insights = [str(insights)]
 
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             conn.execute(
                 text("""
                     INSERT INTO ai_results (health, recommendation, insights, cpu, memory, network)
@@ -173,7 +173,6 @@ Keep the output short, practical, and easy to understand.
                     "network": latest_network
                 }
             )
-            conn.commit()
 
         return {
             "status": "success",
