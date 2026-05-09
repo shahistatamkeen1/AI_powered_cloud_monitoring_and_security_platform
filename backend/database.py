@@ -9,7 +9,7 @@ odbc_conn_str = (
     "Uid=azureadmin;"
     "Pwd=CloudAdmin2026!;"
     "Encrypt=yes;"
-    "TrustServerCertificate=no;"
+    "TrustServerCertificate=yes;"
     "Connection Timeout=30;"
 )
 
