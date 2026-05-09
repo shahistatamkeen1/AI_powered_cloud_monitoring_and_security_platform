@@ -5,9 +5,9 @@ conn = pyodbc.connect(
     "Server=tcp:ai-sql-server123.database.windows.net,1433;"
     "Database=ai_monitoring_db;"
     "Uid=azureadmin;"
-    "Pwd=YOUR_PASSWORD_HERE;"
+    "Pwd=CloudAdmin2026!;"
     "Encrypt=yes;"
-    "TrustServerCertificate=no;"
+    "TrustServerCertificate=yes;"
 )
 
 print("Connected successfully!")
