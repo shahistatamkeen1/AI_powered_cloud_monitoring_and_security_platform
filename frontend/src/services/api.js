@@ -71,4 +71,15 @@ export async function fetchAiHistory() {
   return res.json();
 }
 
+export async function ingestMetric(metricData) {
+  const res = await fetch(`${API_BASE_URL}/metrics/ingest`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(metricData),
+  });
+
+  if (!res.ok) throw new Error("Failed to send metric data");
+  return res.json();
+}
+
 export { API_BASE_URL, getAuthHeaders };

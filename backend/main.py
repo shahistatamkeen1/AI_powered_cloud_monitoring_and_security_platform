@@ -4,6 +4,7 @@ from typing import List
 import threading
 import time
 import random
+import os
 from datetime import datetime
 from sqlalchemy import text
 
@@ -75,8 +76,12 @@ def generate_metrics():
 # ✅ Start background thread
 @app.on_event("startup")
 def start_metrics_thread():
-    thread = threading.Thread(target=generate_metrics, daemon=True)
-    thread.start()
+    if os.getenv("ENABLE_FAKE_METRICS", "false").lower() == "true":
+        thread = threading.Thread(target=generate_metrics, daemon=True)
+        thread.start()
+        print("Fake metrics generator started")
+    else:
+        print("Fake metrics generator disabled. Waiting for real monitoring agent data.")
 
 
 # ✅ Root

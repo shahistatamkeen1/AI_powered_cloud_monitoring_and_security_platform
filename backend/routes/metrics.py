@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 from ..database import engine
+from ..schemas import MetricIngest
 from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
@@ -18,6 +19,29 @@ print("METRICS API KEY LOADED:", "YES" if api_key else "NO")
 
 client = OpenAI(api_key=api_key) if api_key else None
 
+@router.post("/ingest")
+def ingest_metrics(metric: MetricIngest):
+    with engine.begin() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO metrics (cpu_usage, memory_usage, network_usage, recorded_at)
+                VALUES (:cpu, :memory, :network, GETDATE())
+            """),
+            {
+                "cpu": metric.cpu_usage,
+                "memory": metric.memory_usage,
+                "network": metric.network_usage,
+            },
+        )
+
+    return {
+        "status": "success",
+        "message": "Real system metrics saved successfully",
+        "system_name": metric.system_name,
+        "cpu": metric.cpu_usage,
+        "memory": metric.memory_usage,
+        "network": metric.network_usage,
+    }
 
 @router.get("/history")
 def get_metrics_history():

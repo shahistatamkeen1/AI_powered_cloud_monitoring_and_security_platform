@@ -17,7 +17,13 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-
+# -------- METRICS INGEST --------
+class MetricIngest(BaseModel):
+    system_name: str
+    cpu_usage: float
+    memory_usage: float
+    network_usage: float
+    
 # -------- ALERTS --------
 class Alert(BaseModel):
     id: int
