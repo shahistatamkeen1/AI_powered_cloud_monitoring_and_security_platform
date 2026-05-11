@@ -38,10 +38,10 @@ export default function Dashboard() {
         setError('')
 
         const [summaryRes, historyRes, alertsRes, insightsRes] = await Promise.all([
-          fetch('http://52.234.161.141:8000/metrics/summary'),
-          fetch('http://52.234.161.141:8000/metrics/history'),
-          fetch('http://52.234.161.141:8000/alerts'),
-          fetch('http://52.234.161.141:8000/metrics/ai-insights'),
+          fetch('http://20.25.48.139:8000/metrics/summary'),
+          fetch('http://20.25.48.139:8000/metrics/history'),
+          fetch('http://20.25.48.139:8000/alerts'),
+          fetch('http://20.25.48.139:8000/metrics/ai-insights'),
         ])
 
         if (!summaryRes.ok || !historyRes.ok || !alertsRes.ok || !insightsRes.ok) {

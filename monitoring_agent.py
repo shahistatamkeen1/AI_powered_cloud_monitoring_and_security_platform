@@ -3,7 +3,7 @@ import socket
 import psutil
 import requests
 
-BACKEND_URL = "http://52.234.161.141:8000/metrics/ingest"
+BACKEND_URL = "http://20.25.48.139:8000/metrics/ingest"
 SYSTEM_NAME = socket.gethostname()
 
 previous_net = psutil.net_io_counters()

@@ -9,32 +9,32 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/auth': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },
       '/metrics': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },
       '/alerts': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },
       '/logs': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },
       '/history': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },
       '/dashboard': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://20.25.48.139:8000',
         changeOrigin: true,
         secure: false,
       },

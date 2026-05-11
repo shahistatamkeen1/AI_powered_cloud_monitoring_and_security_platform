@@ -4,7 +4,7 @@
 AI-Powered Cloud Monitoring & Security Platform
 
 ## Frontend URL
-http://52.234.161.141:5173/login
+http://20.25.48.139:5173/login
 
 ---
 

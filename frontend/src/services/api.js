@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://52.234.161.141:8000";
+  import.meta.env.VITE_API_BASE_URL || "http://20.25.48.139:8000";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("token");

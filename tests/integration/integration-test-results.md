@@ -6,10 +6,10 @@ AI-Powered Cloud Monitoring & Security Platform
 ## Test Environment
 
 Frontend Public URL:
-http://52.234.161.141:5173/login
+http://20.25.48.139:5173/login
 
 Backend API Docs:
-http://52.234.161.141:8000/docs
+http://20.25.48.139:8000/docs
 
 Frontend Inside Azure VM:
 http://localhost:5173/login
